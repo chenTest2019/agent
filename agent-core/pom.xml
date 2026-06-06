@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.chen</groupId>
+        <artifactId>agent</artifactId>
+        <version>${revision}</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>agent-core</artifactId>
+
+    <properties>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <lombok.version>1.18.46</lombok.version>
+    </properties>
+    <dependencies>
+        <!-- Source: https://mvnrepository.com/artifact/com.alibaba.fastjson2/fastjson2 -->
+        <dependency>
+            <groupId>com.alibaba.fastjson2</groupId>
+            <artifactId>fastjson2</artifactId>
+            <version>2.0.62</version>
+            <scope>compile</scope>
+        </dependency>
+        <!-- Source: https://mvnrepository.com/artifact/org.projectlombok/lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.chen</groupId>
+            <artifactId>agent-spy</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <!-- Source: https://mvnrepository.com/artifact/org.apache.maven.plugins/maven-compiler-plugin -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.15.0</version>
+                <configuration>
+                    <!--                    加了lombok的Data注解后的类 在编译时提示找不到符号-->
+                    <!--                    所以这里需要增加lombok的注解处理器(IDE里面的配置不生效？！！)-->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                    <!--                    <debug>true</debug>-->
+                    <!--                    <debuglevel>source,lines,vars</debuglevel>-->
+<!--                    <compilerArgs>-->
+<!--                        <arg> &#45;&#45;add-exports=java.base/sun.net.www.http=ALL-UNNAMED</arg>-->
+<!--                        <arg>&#45;&#45;add-exports=java.base/jdk.internal.reflect=ALL-UNNAMED</arg>-->
+<!--                    </compilerArgs>-->
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <!-- 1. 打包主Agent Jar：排除Spy类，避免和Spy Jar冲突 -->
+                    <execution>
+                        <id>default-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <archive >
+                                <!-- 自动生成 JavaAgent 必须的清单属性 -->
+                                <manifestEntries>
+                                    <Agent-class>org.chen.App</Agent-class>
+                                    <!-- Agent 入口类（全类名） -->
+                                    <Premain-Class>org.chen.App</Premain-Class>
+                                    <!-- 是否允许重定义类 -->
+                                    <Can-Redefine-Classes>true</Can-Redefine-Classes>
+                                    <!-- 是否允许重转换类（修改已加载类） -->
+                                    <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                                    <!-- 是否能使用 native 钩子 -->
+                                    <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
+                                </manifestEntries>
+                            </archive>
+                        </configuration>
+                    </execution>
+                </executions>
+                <configuration>
+
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.8.0</version>
+                <configuration>
+                    <appendAssemblyId>true</appendAssemblyId>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                    <archive>
+                        <manifestEntries>
+                            <Premain-Class>org.chen.App</Premain-Class>
+                            <Agent-class>org.chen.App</Agent-class>
+                            <Can-Redefine-Classes>true</Can-Redefine-Classes>
+                            <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                            <Can-Set-Native-Method-Prefix>true</Can-Set-Native-Method-Prefix>
+<!--                            <Add-Exports>-->
+<!--                                java.base/sun.net.www.http=ALL-UNNAMED-->
+<!--                                java.base/jdk.internal.reflect=ALL-UNNAMED-->
+<!--                            </Add-Exports>-->
+                        </manifestEntries>
+                    </archive>
+
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <!--                        <phase>package</phase>-->
+                        <phase>package</phase><!--临时禁用 <phase>none</phase>-->
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+
+
+            </plugin>
+
+        </plugins>
+    </build>
+</project>
