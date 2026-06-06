@@ -1,6 +1,8 @@
 package org.chen.transform.common;
 
-import org.chen.utils.SimpleLog;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.chen.utils.Utils;
 
 import java.lang.classfile.*;
@@ -15,10 +17,11 @@ import java.util.List;
 
 
 public class DnsTransform implements CommonClassFileTransformer {
+    private static final Logger log = LogManager.getLogger(DnsTransform.class);
     private final List<String> hookClasses = new ArrayList<>();
 
     public DnsTransform() {
-        SimpleLog.info("DnsTransform");
+        log.info("DnsTransform");
         hookClasses.add(InetAddress.class.getName());
     }
 
@@ -38,12 +41,12 @@ public class DnsTransform implements CommonClassFileTransformer {
         if (!this.hookClasses.contains(className)) {
             return null;
         }
-        SimpleLog.info("transform start {}", className);
+        log.info("transform start {}", className);
         ClassModel parse = ClassFile.of().parse(classFileBuffer);
         ClassTransform classTransform=getClassTransform();
         try {
             byte[] bytes = ClassFile.of().transformClass(parse, classTransform);
-            SimpleLog.info("transform end {}", className);
+            log.info("transform end {}", className);
             List<VerifyError> verify = ClassFile.of().verify(bytes);
             if (!verify.isEmpty()) {
                 verify.forEach(Throwable::printStackTrace);
@@ -51,7 +54,7 @@ public class DnsTransform implements CommonClassFileTransformer {
             }
             Utils.saveToFile(classInterName, bytes);
         } catch (Exception e) {
-            SimpleLog.error("transform e:" + e);
+            log.error("transform e:" , e);
         }
         return null;
     }

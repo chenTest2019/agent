@@ -1,6 +1,8 @@
 package org.chen.transform.common;
 
-import org.chen.utils.SimpleLog;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.chen.utils.Utils;
 
 import java.lang.classfile.*;
@@ -14,10 +16,11 @@ import java.util.List;
 
 public class HttpClientTransformer implements CommonClassFileTransformer {
 
+    private static final Logger log = LogManager.getLogger(HttpClientTransformer.class);
     private final List<String> hookClasses = new ArrayList<>();
 
     public HttpClientTransformer() {
-        SimpleLog.info("HttpClientTransformer");
+        log.info("HttpClientTransformer");
         hookClasses.add("sun.net.www.http.HttpClient");
         //sun.net.www.http.HttpClient.class.getName();
         //java.net.http.HttpClient.class.getName();
@@ -39,14 +42,13 @@ public class HttpClientTransformer implements CommonClassFileTransformer {
         if (!this.hookClasses.contains(className)) {
             return classFileBuffer;
         }
-        SimpleLog.info("transform start {}", className);
+        log.info("transform start {}", className);
         ClassTransform classTransform = getClassTransform(classInterName);
         byte[] bytes = null;
         try {
             bytes = ClassFile.of().transformClass(ClassFile.of().parse(classFileBuffer), classTransform);
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println(e);
+            log.error("transform e:" , e);
         }
         if (bytes == null) {
             return null;
@@ -57,7 +59,7 @@ public class HttpClientTransformer implements CommonClassFileTransformer {
             return null;
         }
         Utils.saveToFile(classInterName, bytes);
-        SimpleLog.info("transform end {}", className);
+        log.info("transform end {}", className);
         return bytes;
     }
 

@@ -1,6 +1,6 @@
 package org.chen.transform.common;//package org.chen.transform.common;
 //
-//import org.chen.utils.SimpleLog;
+//
 //import jdk.internal.org.objectweb.asm.ClassReader;
 //import jdk.internal.org.objectweb.asm.ClassWriter;
 //import jdk.internal.org.objectweb.asm.Opcodes;
@@ -34,13 +34,13 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //        if (!getHookClasses().contains(className)) {
 //            return classfileBuffer;
 //        }
-//        SimpleLog.info("transform start {}", className);
+//        log.info("transform start {}", className);
 ////        ClassReader reader = new ClassReader(classfileBuffer);
 ////        ClassNode node = new ClassNode(ASM8);
 ////        reader.accept(node, 0);
 ////        node.methods.forEach(methodNode -> {
 ////            if ("loadClass".equals(methodNode.name)) {
-////                SimpleLog.info("transform method start {} {}", className, methodNode.name);
+////                log.info("transform method start {} {}", className, methodNode.name);
 ////                InsnList insnList = new InsnList();
 //////                insnList.add(new FieldInsnNode(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;"));
 //////                insnList.add(new VarInsnNode(Opcodes.ALOAD, 1));
@@ -48,7 +48,7 @@ package org.chen.transform.common;//package org.chen.transform.common;
 ////                insnList.add(new VarInsnNode(Opcodes.ALOAD, 1));
 ////                insnList.add(new MethodInsnNode(Opcodes.INVOKESTATIC, owner, "forName", "(Ljava/lang/String;)V", false));
 ////                methodNode.instructions.insert(insnList);
-////                SimpleLog.info("transform method end {} {}", className, methodNode.name);
+////                log.info("transform method end {} {}", className, methodNode.name);
 ////            }
 ////        });
 ////
@@ -59,9 +59,9 @@ package org.chen.transform.common;//package org.chen.transform.common;
 ////        try {
 ////            node.accept(writer);
 ////            saveClass(className.replaceAll("/", "."), writer);
-////            SimpleLog.info("transform end {}", className);
+////            log.info("transform end {}", className);
 ////        } catch (Exception e) {
-////            SimpleLog.error("transform error {} {}", e.getMessage());
+////            log.error("transform error {} {}", e.getMessage());
 ////        }
 //        return null;
 //    }

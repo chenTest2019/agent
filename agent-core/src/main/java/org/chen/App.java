@@ -11,7 +11,7 @@ public class App {
         IO.println("main");
     }
 
-    public static void agentmain(String agentArgs, Instrumentation inst) throws Exception {
+    public static void agentmain(String agentArgs, Instrumentation inst) {
         IO.println("agentmain");
         premain(agentArgs, inst);
     }
@@ -21,16 +21,13 @@ public class App {
         try {
             start(agentArgs, inst);
         } catch (Exception e) {
-            e.printStackTrace();
-            IO.println("start error " + e);
+            throw new RuntimeException(e);
         }
 
     }
 
     public static void start(String agentArgs, Instrumentation inst) {
-        IO.println("start {}"+ agentArgs);
-//        LaunchTest launchTest = new LaunchTest(agentArgs, inst);
-//        launchTest.start();
+        IO.println("start agentArgs "+ agentArgs);
         Launch launch = new Launch(agentArgs, inst);
         launch.start();
     }

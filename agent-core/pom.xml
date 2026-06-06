@@ -17,13 +17,15 @@
         <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <lombok.version>1.18.46</lombok.version>
+        <fastjson2.version>2.0.62</fastjson2.version>
+        <log4j.version>2.26.0</log4j.version>
     </properties>
     <dependencies>
         <!-- Source: https://mvnrepository.com/artifact/com.alibaba.fastjson2/fastjson2 -->
         <dependency>
             <groupId>com.alibaba.fastjson2</groupId>
             <artifactId>fastjson2</artifactId>
-            <version>2.0.62</version>
+            <version>${fastjson2.version}</version>
             <scope>compile</scope>
         </dependency>
         <!-- Source: https://mvnrepository.com/artifact/org.projectlombok/lombok -->
@@ -38,6 +40,13 @@
             <artifactId>agent-spy</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
+        </dependency>
+        <!-- Source: https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
@@ -140,6 +149,51 @@
 
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.5.0</version> <!-- 使用特定版本的插件 -->
+                <executions>
+                    <execution>
+                        <id>copy-config</id>
+                        <phase>process-resources</phase> <!-- 绑定到 process-resources 阶段 -->
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${out.cracked.dir}</outputDirectory> <!-- 目标目录 -->
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources</directory> <!-- 源目录 -->
+                                    <includes>
+                                        <include>config.json</include>
+                                        <include>activeCode.txt</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${out.cracked.dir}</outputDirectory> <!-- 目标目录 -->
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}</directory> <!-- 源目录 -->
+                                    <includes>
+                                        <include>${project.build.finalName}.jar</include>
+                                        <include>${project.build.finalName}-jar-with-dependencies.jar</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>

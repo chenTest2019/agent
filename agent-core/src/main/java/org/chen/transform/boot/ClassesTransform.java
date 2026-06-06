@@ -1,8 +1,10 @@
 package org.chen.transform.boot;
 
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.chen.spy.ConfigHelperSpy;
-import org.chen.utils.SimpleLog;
+
 import org.chen.utils.Utils;
 
 import java.lang.classfile.*;
@@ -16,6 +18,7 @@ import java.util.List;
 
 public class ClassesTransform implements BootClassFileTransformer {
     private static final String owner = ConfigHelperSpy.class.getName();
+    private static final Logger log = LogManager.getLogger(ClassesTransform.class);
     private final List<String> hookClasses = new ArrayList<>();
 
     public ClassesTransform() {
@@ -38,12 +41,13 @@ public class ClassesTransform implements BootClassFileTransformer {
         if (!this.hookClasses.contains(className)) {
             return null;
         }
-        SimpleLog.info("transform start {}", className);
+
+        log.info("transform start {}", className);
         ClassModel classModel = ClassFile.of().parse(classFileBuffer);
         ClassTransform classTransform = getClassTransform();
         byte[] bytes = ClassFile.of().transformClass(classModel, classTransform);
         Utils.saveToFile(classInterName,bytes);
-        SimpleLog.info("transform end {}", className);
+        log.info("transform end {}", className);
         return bytes;
     }
 

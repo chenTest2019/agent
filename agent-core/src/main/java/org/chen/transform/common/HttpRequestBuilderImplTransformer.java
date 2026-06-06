@@ -1,6 +1,8 @@
 package org.chen.transform.common;
 
-import org.chen.utils.SimpleLog;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.chen.utils.Utils;
 
 import java.lang.classfile.*;
@@ -15,6 +17,7 @@ import java.util.List;
 
 //import jdk.internal.net.http.*;
 public class HttpRequestBuilderImplTransformer implements CommonClassFileTransformer{
+    private static final Logger log = LogManager.getLogger(HttpRequestBuilderImplTransformer.class);
     private final List<String> hookClasses = new ArrayList<>();
 
     public HttpRequestBuilderImplTransformer() {
@@ -37,14 +40,13 @@ public class HttpRequestBuilderImplTransformer implements CommonClassFileTransfo
         if (!this.hookClasses.contains(className)) {
             return classfileBuffer;
         }
-        SimpleLog.info("transform start {}", className);
+        log.info("transform start {}", className);
         ClassTransform classTransform = getClassTransform();
         byte[] bytes = null;
         try {
             bytes = ClassFile.of().transformClass(ClassFile.of().parse(classfileBuffer), classTransform);
         } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println(e);
+            log.info("transform exception {}", className,e);
         }
         if (bytes == null) {
             return null;
@@ -55,7 +57,7 @@ public class HttpRequestBuilderImplTransformer implements CommonClassFileTransfo
             return null;
         }
         Utils.saveToFile(classInterName, bytes);
-        SimpleLog.info("transform end {}", className);
+        log.info("transform end {}", className);
         return bytes;
     }
 

@@ -2,7 +2,7 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //
 //
 //import org.chen.utils.ConfigHelper;
-//import org.chen.utils.SimpleLog;
+//
 //import jdk.internal.org.objectweb.asm.ClassReader;
 //import jdk.internal.org.objectweb.asm.ClassWriter;
 //import jdk.internal.org.objectweb.asm.Opcodes;
@@ -44,7 +44,7 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //            return classFileBuffer;
 //        }
 //
-//        SimpleLog.info("transform start {} {}", className, loader);
+//        log.info("transform start {} {}", className, loader);
 //        ClassReader classReader = new ClassReader(classFileBuffer);
 //        ClassWriter classWriter = new ClassWriter(classReader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
 //        ClassNode classNode = new ClassNode(ASM8);
@@ -53,7 +53,7 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //            case "com/intellij/diagnostic/VMOptions" -> {
 //                classNode.methods.forEach(methodNode -> {
 //                    if (methodNode.name.equals("getUserOptionsFile")) {
-//                        SimpleLog.info("transform method start {} {}", className, methodNode.name);
+//                        log.info("transform method start {} {}", className, methodNode.name);
 //                        for (AbstractInsnNode node : methodNode.instructions) {
 //                            if (node.getOpcode() == Opcodes.ARETURN) {
 //                                var nullLabel = new LabelNode();
@@ -67,29 +67,29 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //                                methodNode.instructions.insert(node.getPrevious(), insnList);
 //                            }
 //                        }
-//                        SimpleLog.info("transform method end {} {}", className, methodNode.name);
+//                        log.info("transform method end {} {}", className, methodNode.name);
 //                    }
 //                });
 //            }
 //            case "com/intellij/ui/LicensingFacade" -> {
 //                classNode.methods.forEach(methodNode -> {
 //                    if (methodNode.name.equals("getLicenseExpirationDate")) {
-//                        SimpleLog.info("transform method start {} {}", className, methodNode.name);
+//                        log.info("transform method start {} {}", className, methodNode.name);
 //                        methodNode.instructions.clear();
 //                        methodNode.instructions.add(new MethodInsnNode(Opcodes.INVOKESTATIC, owner, methodNode.name, "()Ljava/util/Date;"));
 //                        methodNode.instructions.add(new InsnNode(Opcodes.ARETURN));
-//                        SimpleLog.info("transform method end {} {}", className, methodNode.name);
+//                        log.info("transform method end {} {}", className, methodNode.name);
 //                    }
 //
 //                    if (methodNode.name.equals("getExpirationDate") && methodNode.desc.equals("(Ljava/lang/String;)Ljava/util/Date;")) {
-//                        SimpleLog.info("transform method start {} {}", className, methodNode.name);
+//                        log.info("transform method start {} {}", className, methodNode.name);
 //                        methodNode.instructions.clear();
 //                        methodNode.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
 //                        methodNode.instructions.add(new FieldInsnNode(Opcodes.GETFIELD, classInterName, "expirationDates", "Ljava/util/Map;"));
 //                        methodNode.instructions.add(new VarInsnNode(Opcodes.ALOAD, 1));
 //                        methodNode.instructions.add(new MethodInsnNode(Opcodes.INVOKESTATIC, owner, methodNode.name, "(Ljava/util/Map;Ljava/lang/String;)Ljava/util/Date;"));
 //                        methodNode.instructions.add(new InsnNode(Opcodes.ARETURN));
-//                        SimpleLog.info("transform method end {} {}", className, methodNode.name);
+//                        log.info("transform method end {} {}", className, methodNode.name);
 //                    }
 //
 //                    //由于不知道expirationDates什么时候被修改 所以这里在每个对象方法前更新
@@ -97,7 +97,7 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //                    boolean isNonStatic = ((methodNode.access & Opcodes.ACC_STATIC) == 0);
 //                    boolean isConstructor = methodNode.name.equals("<init>");
 //                    if (isNonStatic && !isConstructor) {
-//                        SimpleLog.info("transform method start {} {}", className, methodNode.name);
+//                        log.info("transform method start {} {}", className, methodNode.name);
 //                        InsnList insnList = new InsnList();
 //                        insnList.add(new VarInsnNode(Opcodes.ALOAD, 0));
 //                        insnList.add(new InsnNode(Opcodes.DUP));
@@ -105,7 +105,7 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //                        insnList.add(new MethodInsnNode(Opcodes.INVOKESTATIC, owner, "expirationDates", "(Ljava/util/Map;)Ljava/util/Map;"));
 //                        insnList.add(new FieldInsnNode(Opcodes.PUTFIELD, classInterName, "expirationDates", "Ljava/util/Map;"));
 //                        methodNode.instructions.insert(insnList);
-//                        SimpleLog.info("transform method end {} {}", className, methodNode.name);
+//                        log.info("transform method end {} {}", className, methodNode.name);
 //                    }
 //                });
 //            }
@@ -114,7 +114,7 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //                    var iterator = methodNode.instructions.iterator();
 //                    if (methodNode.name.equals("getVmArguments") &&
 //                            "()Ljava/util/List;".equals(methodNode.desc)) {
-//                        SimpleLog.info("transform method start {} {}", className, methodNode.name);
+//                        log.info("transform method start {} {}", className, methodNode.name);
 //                        InsnList insnList = new InsnList();
 //                        insnList.add(new VarInsnNode(Opcodes.ALOAD, 0));
 //                        insnList.add(new VarInsnNode(Opcodes.ALOAD, 0));
@@ -134,13 +134,13 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //                            }
 //
 //                            if (insnNode instanceof MethodInsnNode methodInsnNode) {
-//                                SimpleLog.info("methodInsnNode:" + methodInsnNode.owner + "\t" + methodInsnNode.name + "\t" + methodInsnNode.desc);
+//                                log.info("methodInsnNode:" + methodInsnNode.owner + "\t" + methodInsnNode.name + "\t" + methodInsnNode.desc);
 //                                boolean canAdd = (Objects.equals(methodInsnNode.owner, "sun/management/VMManagementImpl") &&
 //                                        Objects.equals(methodInsnNode.name, "getVmArguments0") &&
 //                                        Objects.equals(methodInsnNode.desc, "()[Ljava/lang/String;") &&
 //                                        Opcodes.INVOKEVIRTUAL == insnNode.getOpcode());
 //                                if (canAdd) {
-//                                    SimpleLog.info("found methodInsnNode:" + methodInsnNode.owner + "\t" + methodInsnNode.name + "\t" + methodInsnNode.desc);
+//                                    log.info("found methodInsnNode:" + methodInsnNode.owner + "\t" + methodInsnNode.name + "\t" + methodInsnNode.desc);
 //                                    // 在方法开始处插入打印消息的指令
 //                                    InsnList startInstructions = new InsnList();
 //                                    startInstructions.add(new FieldInsnNode(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;"));
@@ -161,12 +161,12 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //                                }
 //                            }
 //                        }
-//                        SimpleLog.info("transform method end {} {}", className, methodNode.name);
+//                        log.info("transform method end {} {}", className, methodNode.name);
 //                    }
 //                });
 //            }
 //        }
-//        SimpleLog.info("transform end {}", className);
+//        log.info("transform end {}", className);
 //        classNode.accept(classWriter);
 //        saveClass(className, classWriter);
 //        return classWriter.toByteArray();

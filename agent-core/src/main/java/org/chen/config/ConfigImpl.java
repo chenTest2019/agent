@@ -2,9 +2,10 @@ package org.chen.config;
 
 
 import com.alibaba.fastjson2.JSONObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.chen.App;
 import org.chen.utils.ConfigHelper;
-import org.chen.utils.SimpleLog;
 
 import java.io.File;
 import java.lang.instrument.Instrumentation;
@@ -12,16 +13,17 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.jar.JarFile;
 
-import static org.chen.utils.Utils.*;
+import static org.chen.utils.Utils.getJarPath;
 
 
 public class ConfigImpl implements Config {
 
+    private static final Logger log = LogManager.getLogger(ConfigImpl.class);
+
     public Path getConfigAbsolutePath(String agentArgs) {
         var pathStr = getConfigPath(agentArgs);
-        SimpleLog.info("{}:{}", "getConfigAbsolutePath", pathStr);
+        log.info("{}:{}", "getConfigAbsolutePath", pathStr);
         Path path = Path.of(pathStr);
         if (path.isAbsolute()) {
             return path;
@@ -42,7 +44,7 @@ public class ConfigImpl implements Config {
         if (config == null || config.isBlank()) {
             return "config.json";
         }
-        SimpleLog.info("getConfigPath :{}", config);
+        log.info("getConfigPath :{}", config);
         return config;
     }
 
@@ -62,17 +64,16 @@ public class ConfigImpl implements Config {
                 commandLineArgs.setAppName("app");
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            SimpleLog.error("readFileToString fail", e);
+            log.error("readFileToString fail", e);
         }
         commandLineArgs.setAgentArgs(agentArgs);
         SystemConfig systemConfigJSON = JSONObject.parseObject(JSONObject.toJSONString(commandLineArgs), SystemConfig.class);
         ConfigHelper.setConfig(SystemConfig.class.getSimpleName(), systemConfigJSON);
         var systemConfig = ConfigHelper.getConfig(SystemConfig.class);
         if (systemConfig != null) {
-            SimpleLog.debug("systemConfig {}", systemConfig.getAppName());
-            SimpleLog.debug("systemConfig {}", systemConfig.getConfig());
-            SimpleLog.debug("systemConfig {}", systemConfig.getLevel());
+            log.debug("systemConfig {}", systemConfig.getAppName());
+            log.debug("systemConfig {}", systemConfig.getConfig());
+            log.debug("systemConfig {}", systemConfig.getLevel());
         }
         return commandLineArgs;
     }
@@ -86,13 +87,13 @@ public class ConfigImpl implements Config {
         }
         try {
             String s = Files.readString(configFilePath, StandardCharsets.UTF_8);
-            //SimpleLog.info("readFileToString success:"+s);
+            //log.info("readFileToString success:"+s);
             ConfigHelper.setConfig(s);
-            //SimpleLog.info("org.chen.utils.ConfigHelper success:"+org.chen.utils.ConfigHelper.config);
+            //log.info("org.chen.utils.ConfigHelper success:"+org.chen.utils.ConfigHelper.config);
 
         } catch (Exception e) {
-            e.printStackTrace();
-            IO.println("readFileToString fail：" + configFilePath + e.getMessage());
+            log.error("readFileToString fail：{}" , configFilePath , e);
+
         }
 
     }

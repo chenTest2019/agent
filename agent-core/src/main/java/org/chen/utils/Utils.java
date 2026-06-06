@@ -1,6 +1,8 @@
 package org.chen.utils;
 
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.chen.App;
 
 import java.io.IOException;
@@ -17,6 +19,8 @@ import java.util.jar.JarFile;
 
 public class Utils {
 
+    private static final Logger log = LogManager.getLogger(Utils.class);
+
     public static JarFile getJarFile(Class<?> clazz) {
         if (clazz==null){
             return null;
@@ -25,6 +29,7 @@ public class Utils {
             URI uri = getJarPath(clazz);
             return new JarFile(uri.getPath());
         } catch (IOException e) {
+            log.error("getJarFile:{}",clazz,e);
             throw new RuntimeException(e);
         }
     }
@@ -72,13 +77,13 @@ public class Utils {
                 .filter(jarEntry -> jarEntry.getName().endsWith(".class"))
                 .filter(jarEntry -> !jarEntry.getName().contains("$"))
                 .forEach(jarEntry -> {
-                    SimpleLog.info("jarEntry.getName():" + jarEntry.getName());
+                    log.info("jarEntry.getName():{}" , jarEntry.getName());
                     String className = jarEntry.getName().replace("/", ".").replace(".class", "");
                     Class<?> clazz;
                     try {
                         clazz = Class.forName(className,false,Thread.currentThread().getContextClassLoader());
                     } catch (ClassNotFoundException e) {
-                        SimpleLog.info("Class not found: {} {}", className, e);
+                        log.info("Class not found: {} {}", className, e);
                         throw new RuntimeException(e);
                     }
                     if (clazz.isInterface()) {
@@ -89,8 +94,7 @@ public class Utils {
                             Object o = clazz.getDeclaredConstructor().newInstance();
                             classes.add(interfaceClass.cast(o));
                         } catch (Exception e) {
-                            e.printStackTrace();
-                            SimpleLog.info("findHookClasses e " + e);
+                            log.error("getHookClass:{}",className,e);
                             throw new RuntimeException(e);
                         }
                     }
@@ -103,7 +107,7 @@ public class Utils {
             Files.createDirectories(filePath.getParent());
             Files.write(filePath, bytes);
         } catch (IOException e) {
-            SimpleLog.error(e.toString());
+            log.error(e.toString());
         }
     }
 

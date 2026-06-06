@@ -2,7 +2,7 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //
 //
 //import org.chen.utils.ConfigHelper;
-//import org.chen.utils.SimpleLog;
+//
 //import jdk.internal.org.objectweb.asm.*;
 //import jdk.internal.org.objectweb.asm.util.CheckClassAdapter;
 //
@@ -44,13 +44,13 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //        if (!this.hookClasses.contains(className)) {
 //            return classFileBuffer;
 //        }
-//        SimpleLog.info("transform start {}", className);
+//        log.info("transform start {}", className);
 //        ClassReader cr = new ClassReader(classFileBuffer);
 //        ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
 //        var myClassVisitor = new MyClassVisitor(ASM8, cw);
 //        var checkClassAdapter = new CheckClassAdapter(myClassVisitor);
 //        cr.accept(checkClassAdapter, ClassReader.EXPAND_FRAMES);
-//        SimpleLog.info("transform end {}", className);
+//        log.info("transform end {}", className);
 //        return cw.toByteArray();
 //    }
 //
@@ -88,7 +88,7 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //            if ("getVmArguments".equals(name)) {
 //                var mv = new MyMethodVisitor(ASM8, visitMethod);
 //
-//                //SimpleLog.info("getVmArguments0:"+access+"\t"+descriptor+"\t"+signature+"\t"+ Arrays.toString(exceptions));
+//                //log.info("getVmArguments0:"+access+"\t"+descriptor+"\t"+signature+"\t"+ Arrays.toString(exceptions));
 //                return mv;
 //            }
 //            return visitMethod;

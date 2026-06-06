@@ -1,6 +1,8 @@
 package org.chen.transform.common;
 
-import org.chen.utils.SimpleLog;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.chen.utils.Utils;
 
 import java.lang.classfile.*;
@@ -15,10 +17,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class BigIntegerTransform implements CommonClassFileTransformer {
 
+    private static final Logger log = LogManager.getLogger(BigIntegerTransform.class);
     private final List<String> hookClasses = new ArrayList<>();
 
+
     public BigIntegerTransform() {
-        SimpleLog.info("this:" + this);
+        log.info("this:{}" , this);
         //owner = ConfigHelperSpy.class.getName();
         //必须再transform前已经确定好
         hookClasses.add(BigInteger.class.getName());
@@ -31,7 +35,7 @@ public class BigIntegerTransform implements CommonClassFileTransformer {
 
     @Override
     public boolean isHook() {
-        return true;
+        return CommonClassFileTransformer.super.isHook();
     }
 
 
@@ -39,7 +43,7 @@ public class BigIntegerTransform implements CommonClassFileTransformer {
     public byte[] transform(ClassLoader loader, String classInterName, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classFileBuffer) {
 
 //        if (classInterName.contains("BigInteger")) {
-//            SimpleLog.info("transform BigInteger:{}", classInterName);
+//            log.info("transform BigInteger:{}", classInterName);
 //        }
 
         var className = classInterName.replace("/", ".");
@@ -47,10 +51,10 @@ public class BigIntegerTransform implements CommonClassFileTransformer {
             return null;
         }
         try {
-            SimpleLog.info("transform start {}", className);
+            log.info("transform start {}", className);
             ClassModel parse = ClassFile.of().parse(classFileBuffer);
             ClassTransform classTransform = getClassTransform();
-            SimpleLog.info("transform end {}", className);
+            log.info("transform end {}", className);
             byte[] bytes = ClassFile.of().transformClass(parse, classTransform);
             List<VerifyError> verify = ClassFile.of().verify(bytes);
             if (!verify.isEmpty()) {
@@ -60,7 +64,7 @@ public class BigIntegerTransform implements CommonClassFileTransformer {
             Utils.saveToFile(classInterName,bytes);
             return bytes;
         } catch (Exception e) {
-            SimpleLog.error("transform e:" + e);
+            log.error("transform e:" , e);
         }
         return null;
     }

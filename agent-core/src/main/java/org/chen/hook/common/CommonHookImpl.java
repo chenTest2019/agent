@@ -1,8 +1,10 @@
 package org.chen.hook.common;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.chen.launch.Launch;
 import org.chen.transform.common.CommonClassFileTransformer;
-import org.chen.utils.SimpleLog;
+
 import org.chen.utils.Utils;
 
 import java.lang.instrument.Instrumentation;
@@ -24,6 +26,8 @@ import java.util.List;
 
 public class CommonHookImpl implements CommonHook {
 
+    private static final Logger log = LogManager.getLogger(CommonHookImpl.class);
+
     @Override
     public void hook(Instrumentation inst) {
         var transformers = Utils.findHookClasses(Launch.jarFile, CommonClassFileTransformer.class,
@@ -32,27 +36,27 @@ public class CommonHookImpl implements CommonHook {
 
         for (CommonClassFileTransformer transformer : transformers) {
             try {
-                SimpleLog.info("hook transformer:" + transformer.getClass().getName() + "\t" + transformer.isHook());
+                log.info("hook transformer:{} {}" , transformer.getClass().getName() , transformer.isHook());
 
                 if (transformer.isHook()) {
                     inst.addTransformer(transformer, true);
                     transformerMap.put(transformer, transformer.getHookClasses());
                 }
             } catch (Exception e) {
-                SimpleLog.info("hookClass e: {}", e);
+                log.error("hookClass ", e);
             }
         }
         // 使已加载的类能够生效 retransformClasses
         var collect = transformerMap.values().stream().flatMap(List::stream).toList();
-        SimpleLog.info("need hook {}", collect.toString());
+        log.info("need hook {}", collect.toString());
         var allLoadedClasses = inst.getAllLoadedClasses();
         for (Class<?> allLoadedClass : allLoadedClasses) {
             if (collect.contains(allLoadedClass.getName())) {
                 try {
-                    SimpleLog.info("retransformClasses {}", allLoadedClass);
+                    log.info("retransformClasses {}", allLoadedClass);
                     inst.retransformClasses(allLoadedClass);
                 } catch (UnmodifiableClassException e) {
-                    SimpleLog.info("retransformClasses {} e:", allLoadedClass, e);
+                    log.info("retransformClasses {} e:", allLoadedClass, e);
                     throw new RuntimeException(e);
                 }
             }

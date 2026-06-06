@@ -2,6 +2,8 @@ package org.chen.utils;
 
 
 import com.alibaba.fastjson2.JSONObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.chen.config.*;
 
 import java.io.IOException;
@@ -17,10 +19,11 @@ public class ConfigHelper {
     private static final HashMap<String, Object> config = new HashMap<>();
     private static final List<String> list = List.of("com.janetfilter.core.utils", "jdk.internal.org.objectweb");
     private static final HashMap<String, Date> myExpirationDates = new HashMap<>();
+    private static final Logger log = LogManager.getLogger(ConfigHelper.class);
 
     public static void setConfig(String json) {
         var jsonObject =  JSONObject.parse(json);
-        //SimpleLog.info("readFileToString :"+jsonObject);
+        //log.info("readFileToString :"+jsonObject);
         ConfigKeyEnum[] values = ConfigKeyEnum.values();
         for (ConfigKeyEnum value : values) {
             if (!(jsonObject.containsKey(value.getKey().getSimpleName()))) {
@@ -63,10 +66,10 @@ public class ConfigHelper {
 
         if (optional.isPresent()) {
             var configOptional = optional.get();
-            //SimpleLog.info("configHelper have found cracked");
+            //log.info("configHelper have found cracked");
             return new BigInteger(configOptional.getResult());
         }
-        //SimpleLog.info("not cracked not match");
+        //log.info("not cracked not match");
 
         return null;
     }
@@ -90,13 +93,13 @@ public class ConfigHelper {
 
     public static Boolean isReachable(InetAddress n) {
         var config = getConfig(DNSConfig.class);
-        List<String> list = null;
-        SimpleLog.info("isReachable InetAddress : " + n.getHostName());
+        List<String> list;
+        log.info("isReachable InetAddress : {}", n.getHostName());
         if (config != null) {
             list = config.getValues();
             for (String s : list) {
                 if (n.getHostName().contains(s)) {
-                    SimpleLog.info("Reject dns reachable : " + n.getHostName() + ", config: " + s);
+                    log.info("Reject dns reachable : {}, config: {}", n.getHostName(), s);
                     return false;
                 }
             }
@@ -108,12 +111,12 @@ public class ConfigHelper {
         var string = url.toString();
         var config = getConfig(URLConfig.class);
         List<String> list;
-        SimpleLog.debug("openServer url : " + url);
+        log.debug("openServer url : {}", url);
         if (config != null) {
             list = config.getValues();
             for (String s : list) {
                 if (string.contains(s)) {
-                    SimpleLog.info("Reject url : " + url + ", config: " + s);
+                    log.info("Reject url : {}, config: {}", url, s);
                     //这里必须抛出异常 不然拦截不住
                     throw new SocketTimeoutException("connect timed out");
                 }
@@ -122,7 +125,7 @@ public class ConfigHelper {
     }
 
     public static List<String> getVmArguments(List<String> vmArgs) {
-        SimpleLog.info("getVmArguments:" + vmArgs.size());
+        log.info("getVmArguments:{}" , vmArgs.size());
         List<String> list = new ArrayList<>(vmArgs);
         var iterator = list.iterator();
         var blacklist = List.of("jdk.internal.org.objectweb", "javaagent");
@@ -133,14 +136,14 @@ public class ConfigHelper {
                     iterator.remove();
                 }
                 if (next.startsWith("-Djanf.debug=")) {
-                    SimpleLog.info("next:" + next);
+                    log.info("next:{}", next);
                     iterator.remove();
                 }
             }
         } catch (Exception e) {
-            SimpleLog.info("getVmArguments e:" + e);
+            log.info("getVmArguments e:", e);
         }
-        SimpleLog.info("getVmArguments:" + list.size());
+        log.info("getVmArguments:{}", list.size());
         return Collections.unmodifiableList(list);
     }
 
@@ -158,10 +161,10 @@ public class ConfigHelper {
             String fileName = (String) vmArgsClass.getDeclaredMethod("getFileName").invoke(null);
             String location = (String) pathManager.getDeclaredMethod("getBinPath").invoke(null);
 
-            SimpleLog.info("getUserOptionsFile location:{},fileName:{}", location, fileName);
+            log.info("getUserOptionsFile location:{},fileName:{}", location, fileName);
             return Paths.get(location, fileName);
         } catch (Exception e) {
-            SimpleLog.info("getUserOptionsFile:{}", e);
+            log.info("getUserOptionsFile:{}",path, e);
         }
         return path;
     }
@@ -173,7 +176,7 @@ public class ConfigHelper {
         if (licenseExpirationDate == null) {
             Calendar calendar = Calendar.getInstance();
             calendar.add(Calendar.DAY_OF_MONTH, 30);
-            SimpleLog.info("getLicenseExpirationDate:{}", calendar.getTime());
+            log.info("getLicenseExpirationDate:{}", calendar.getTime());
             licenseExpirationDate = calendar.getTime();
         }
         return licenseExpirationDate;
@@ -182,18 +185,18 @@ public class ConfigHelper {
     public static void forName(String className)
             throws ClassNotFoundException {
         if (list.stream().anyMatch(className::contains)) {
-            SimpleLog.info("forName find:{}", className);
+            log.info("forName find:{}", className);
             throw new ClassNotFoundException(className);
         }
     }
 
     public static Date getExpirationDate(Map<String, Date> dateMap, String code) {
-        SimpleLog.info("getExpirationDate:{}", code);
+        log.info("getExpirationDate:{}", code);
         if (dateMap.containsKey(code)) {
-            SimpleLog.info("getExpirationDate find:{}", code);
+            log.info("getExpirationDate find:{}", code);
             return dateMap.get(code);
         } else {
-            SimpleLog.info("getExpirationDate not find:{}", code);
+            log.info("getExpirationDate not find:{}", code);
         }
         return getLicenseExpirationDate();
     }
@@ -206,10 +209,10 @@ public class ConfigHelper {
                 return expirationDates;
             }
         }
-        SimpleLog.info("expirationDates:{}", expirationDates);
+        log.info("expirationDates:{}", expirationDates);
         for (String next : expirationDates.keySet()) {
             myExpirationDates.put(next, licenseExpirationDate);
-            SimpleLog.info("expirationDates:{}", next);
+            log.info("expirationDates:{}", next);
         }
         myExpirationDates.put("org.chen.init", new Date());
         return Collections.unmodifiableMap(myExpirationDates);
