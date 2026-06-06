@@ -33,7 +33,7 @@ public class ConfigHelperSpy  {
             for (Method method : declaredMethods) {
                 int modifiers = method.getModifiers();
                 MethodType methodType = MethodType.methodType(method.getReturnType(), method.getParameterTypes());
-                MethodHandle methodHandle=null;
+                MethodHandle methodHandle;
                 if (Modifier.isPublic(modifiers)) {
                     methodHandle = publicLookup.findStatic(configClass, method.getName(),methodType );
                 }else if (Modifier.isPrivate(modifiers)) {
@@ -58,8 +58,7 @@ public class ConfigHelperSpy  {
             }
             return (BigInteger) result;
         } catch (Throwable e) {
-            e.printStackTrace();
-            System.out.println(e);
+            System.err.println("ConfigHelperSpy e:"+e);
         }
         return null;
     }
@@ -69,11 +68,10 @@ public class ConfigHelperSpy  {
         try {
             methodHandle.invoke(className);
         } catch (Throwable e) {
-            System.out.println(e);
             if (e instanceof ClassNotFoundException classNotFoundException) {
                 throw classNotFoundException;
             }else{
-                e.printStackTrace();
+                System.err.println("ConfigHelperSpy e:"+e);
             }
         }
     }
@@ -83,11 +81,10 @@ public class ConfigHelperSpy  {
         try {
             methodHandle.invoke(host);
         } catch (Throwable e) {
-            System.out.println(e);
             if (e instanceof IOException ioException) {
                 throw ioException;
             }else{
-                e.printStackTrace();
+                System.err.println("ConfigHelperSpy e:"+e);
             }
         }
     }
@@ -102,8 +99,7 @@ public class ConfigHelperSpy  {
             }
             return (Boolean) result;
         } catch (Throwable e) {
-            e.printStackTrace();
-            System.out.println(e);
+            System.err.println("ConfigHelperSpy e:"+e);
         }
         return null;
     }
@@ -114,21 +110,19 @@ public class ConfigHelperSpy  {
         try {
             methodHandle.invoke(url);
         } catch (Throwable e) {
-            System.out.println(e);
             if (e instanceof IOException ioException) {
                 throw ioException;
             }else{
-                e.printStackTrace();
+                System.err.println("ConfigHelperSpy e:"+e);
             }
         }
     }
     public static void checkURI(URI uri) {
-        System.out.println("checkURI:"+uri.toString());
         try {
             openServer(uri.toURL());
         } catch (IOException e) {
-            e.printStackTrace();
-             throw new IllegalArgumentException(e);
+            System.err.println("ConfigHelperSpy e:"+e);
+            throw new IllegalArgumentException(e);
         }
     }
 }
