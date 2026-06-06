@@ -30,11 +30,11 @@ public class ConfigImpl implements Config {
         }
         File file = path.toFile();
         if (file.isDirectory()) {
-            IO.println("path is directory:" + path);
+            log.info("path is directory:{}" , path);
             return null;
         }
         URI jarPath =getJarPath(App.class);
-        IO.println("jarPath:" + jarPath);
+        log.info("jarPath:{}" , jarPath);
         return Path.of(jarPath).getParent().resolve(path);
     }
 

@@ -113,7 +113,7 @@ public class Utils {
 
     public static JarFile getBootstrapClassLoaderSearch(String fileName) {
         URI jarPath =getJarPath(App.class);
-        IO.println("jarPath:" + jarPath);
+        log.info("jarPath:{}", jarPath);
         try {
             return new JarFile(Path.of(jarPath).getParent().resolve(fileName).toString());
         } catch (IOException e) {

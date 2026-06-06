@@ -30,7 +30,7 @@ public class BootHookImpl implements BootHook {
                     transformerMap.put(transformer, transformer.getHookClasses());
                 }
             } catch (Exception e) {
-                IO.println("hookClass e:" + e);
+                log.error("hookClass e:" , e);
             }
         }
         // 使已加载的类能够生效 retransformClasses

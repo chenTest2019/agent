@@ -55,7 +55,7 @@ public class ConfigHelper {
     public static BigInteger oddModPow(BigInteger x, BigInteger y, BigInteger z) {
         var config = getConfig(BigIntegerConfig.class);
         if (config == null) {
-            IO.println("not cracked config is null");
+            log.info("not cracked config is null");
             return null;
         }
         //System.out.printf("\n %s\tx y z\n %s\n%s\n%s\n", LocalDateTime.now(), x, y, z);
@@ -77,13 +77,13 @@ public class ConfigHelper {
     public static void getAllByName(String host) throws IOException {
         if (host!=null&&!host.isBlank()) {
             var config = getConfig(DNSConfig.class);
-            List<String> domain = null;
-            IO.println("getAllByName host : " + host);
+            List<String> domain;
+            log.info("getAllByName host : {}", host);
             if (config != null) {
                 domain = config.getValues();
                 for (String s : domain) {
                     if (host.contains(s)) {
-                        IO.println("Reject dns query: " + host + ", config: " + s);
+                        log.info("Reject dns query: {}, config: {}", host, s);
                         throw new java.net.UnknownHostException();
                     }
                 }
