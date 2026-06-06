@@ -27,7 +27,7 @@ public class CommonHookImpl implements CommonHook {
     @Override
     public void hook(Instrumentation inst) {
         var transformers = Utils.findHookClasses(Launch.jarFile, CommonClassFileTransformer.class,
-                "com/chen/transform/common");
+                "org/chen/transform/common");
         HashMap<CommonClassFileTransformer, List<String>> transformerMap = new HashMap<>();
 
         for (CommonClassFileTransformer transformer : transformers) {

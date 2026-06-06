@@ -4,6 +4,8 @@ package org.chen.utils;
 import org.chen.App;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -20,14 +22,13 @@ public class Utils {
             return null;
         }
         try {
-            String path = getJarPath(clazz);
-            String jarPath = URLDecoder.decode(path, StandardCharsets.UTF_8);
-            return new JarFile(jarPath);
+            URI uri = getJarPath(clazz);
+            return new JarFile(uri.getPath());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-    public static String getJarPath(Class<?> clazz){
+    public static URI getJarPath(Class<?> clazz){
         URL location = clazz.getProtectionDomain().getCodeSource().getLocation();
         String path = "";
         if(location!=null&&location.getPath()!=null){
@@ -47,7 +48,12 @@ public class Utils {
                 throw new RuntimeException(e);
             }
         }
-        return path;
+        try {
+            String jarPath = URLDecoder.decode(path, StandardCharsets.UTF_8);
+            return new URI(jarPath);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static <T> List<T> findHookClasses(JarFile jarFile, Class<T> interfaceClass, String path) {
@@ -102,7 +108,7 @@ public class Utils {
     }
 
     public static JarFile getBootstrapClassLoaderSearch(String fileName) {
-        String jarPath =getJarPath(App.class);
+        URI jarPath =getJarPath(App.class);
         IO.println("jarPath:" + jarPath);
         try {
             return new JarFile(Path.of(jarPath).getParent().resolve(fileName).toString());

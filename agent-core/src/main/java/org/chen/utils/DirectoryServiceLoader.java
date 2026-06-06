@@ -43,7 +43,7 @@ public class DirectoryServiceLoader<S> implements Iterable<S> {
     /**
      * 使用当前线程上下文类加载器加载指定包下的接口实现
      * @param service 要扫描的接口
-     * @param basePackages 要扫描的根包（多个），例如 "com.chen", "com.other"
+     * @param basePackages 要扫描的根包（多个），例如 "org.chen", "com.other"
      * @return DirectoryServiceLoader 实例
      */
     public static <S> DirectoryServiceLoader<S> load(Class<S> service, String... basePackages) {

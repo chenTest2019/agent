@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 public class Launch {
     public static final JarFile jarFile = Utils.getJarFile(Launch.class);
+    private static final String bootStrapJar="agent-spy-1.0-SNAPSHOT.jar";
     private Instrumentation inst;
     private String agentArgs;
 
@@ -39,13 +40,15 @@ public class Launch {
             System.out.println("contextClassLoader: "+contextClassLoader);
             System.out.println("platformClassLoader: "+platformClassLoader);
             System.out.println("systemClassLoader: "+systemClassLoader);
-            inst.appendToBootstrapClassLoaderSearch(Utils.getBootstrapClassLoaderSearch("myAgentNext-1.0-SNAPSHOT-spy.jar"));
+            inst.appendToBootstrapClassLoaderSearch(Utils.getBootstrapClassLoaderSearch(bootStrapJar));
         } catch (Exception e) {
+            e.printStackTrace();
             SimpleLog.info("result:" + e);
+            throw e;
         }
         new ConfigImpl().readJsonStringFromConfigFile(agentArgs, inst);
         try {
-            boolean result = handler(jarFile, "com/chen/hook");
+            boolean result = handler(jarFile, "org/chen/hook");
             SimpleLog.info("result:" + result);
         } catch (Exception e) {
             e.printStackTrace();

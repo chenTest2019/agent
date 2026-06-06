@@ -21,7 +21,7 @@ import java.util.HashMap;
 public class ConfigHelperSpy  {
     // 缓存真正的ConfigHelper的方法，避免每次反射
     private static final HashMap<String,MethodHandle> methodHandleHashMap = new HashMap<>();
-    static final String realHelp="com.chen.utils.ConfigHelper";
+    static final String realHelp="org.chen.utils.ConfigHelper";
     static {
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
         try {

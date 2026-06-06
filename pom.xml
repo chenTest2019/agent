@@ -17,9 +17,58 @@
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <lombok.version>1.18.46</lombok.version>
 <!--        官方特殊属性-->
         <revision>1.0-SNAPSHOT</revision>
-
+        <out.cracked.dir>E:\ideame\idea</out.cracked.dir>
     </properties>
-
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.5.0</version> <!-- 使用特定版本的插件 -->
+                <executions>
+                    <execution>
+                        <id>copy-config</id>
+                        <phase>process-resources</phase> <!-- 绑定到 process-resources 阶段 -->
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${out.cracked.dir}</outputDirectory> <!-- 目标目录 -->
+                            <resources>
+                                <resource>
+                                    <directory>src/main/resources</directory> <!-- 源目录 -->
+                                    <includes>
+                                        <include>config.json</include>
+                                        <include>activeCode.txt</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-jar</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${out.cracked.dir}</outputDirectory> <!-- 目标目录 -->
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}</directory> <!-- 源目录 -->
+                                    <includes>
+                                        <include>${project.build.finalName}.jar</include>
+                                        <include>${project.build.finalName}-jar-with-dependencies.jar</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

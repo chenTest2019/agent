@@ -8,11 +8,13 @@ import org.chen.utils.SimpleLog;
 
 import java.io.File;
 import java.lang.instrument.Instrumentation;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.jar.JarFile;
 
-import static org.chen.utils.Utils.getJarPath;
+import static org.chen.utils.Utils.*;
 
 
 public class ConfigImpl implements Config {
@@ -29,7 +31,7 @@ public class ConfigImpl implements Config {
             IO.println("path is directory:" + path);
             return null;
         }
-        String jarPath =getJarPath(App.class);
+        URI jarPath =getJarPath(App.class);
         IO.println("jarPath:" + jarPath);
         return Path.of(jarPath).getParent().resolve(path);
     }

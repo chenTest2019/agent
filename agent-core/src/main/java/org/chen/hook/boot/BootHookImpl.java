@@ -15,7 +15,7 @@ public class BootHookImpl implements BootHook {
     public void hook(Instrumentation inst) {
 
         var transformers = Utils.findHookClasses(Launch.jarFile, BootClassFileTransformer.class,
-                "com/chen/transform/boot");
+                "org/chen/transform/boot");
         HashMap<BootClassFileTransformer, List<String>> transformerMap = new HashMap<>();
         for (BootClassFileTransformer transformer : transformers) {
             try {
