@@ -1,26 +1,21 @@
-package org.chen.transform.common;//package org.chen.transform.common;
+//package org.chen.transform.common;//package org.chen.transform.common;
 //
 //
+//import org.apache.logging.log4j.LogManager;
+//import org.apache.logging.log4j.Logger;
 //import org.chen.utils.ConfigHelper;
-//
-//import jdk.internal.org.objectweb.asm.*;
-//import jdk.internal.org.objectweb.asm.util.CheckClassAdapter;
-//
 //import java.security.ProtectionDomain;
 //import java.util.ArrayList;
 //import java.util.List;
 //
-//import static jdk.internal.org.objectweb.asm.Opcodes.*;
+//
 //
 ///**
 // * 本地方法拦截 ClassVisitor 实现方式
 // */
 //public class NativeTransform implements CommonClassFileTransformer {
-//    private static final String owner;
 //
-//    static {
-//        owner = ConfigHelper.class.getName().replace(".", "/");
-//    }
+//    private static final Logger log = LogManager.getLogger(NativeTransform.class);
 //
 //    private final List<String> hookClasses = new ArrayList<>();
 //
@@ -40,7 +35,7 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //
 //    @Override
 //    public byte[] transform(ClassLoader loader, String classInterName, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classFileBuffer) {
-//        var className = classInterName.replaceAll("/", ".");
+//        var className = classInterName.replace("/", ".");
 //        if (!this.hookClasses.contains(className)) {
 //            return classFileBuffer;
 //        }

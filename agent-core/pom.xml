@@ -194,6 +194,61 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <groupId>com.github.wvengen</groupId>
+                <artifactId>proguard-maven-plugin</artifactId>
+                <version>2.7.0</version>
+                <dependencies>
+                    <!-- Source: https://mvnrepository.com/artifact/com.guardsquare/proguard-base -->
+                    <dependency>
+                        <groupId>com.guardsquare</groupId>
+                        <artifactId>proguard-base</artifactId>
+                        <version>7.9.1</version>
+<!--                        <scope>runtime</scope>-->
+                    </dependency>
+                    <!-- Source: https://mvnrepository.com/artifact/com.guardsquare/proguard-core -->
+                    <dependency>
+                        <groupId>com.guardsquare</groupId>
+                        <artifactId>proguard-core</artifactId>
+                        <version>9.3.2</version>
+                        <scope>compile</scope>
+                    </dependency>
+                </dependencies>
+                <executions>
+                    <execution>
+                        <phase>none</phase> <!-- package 在打包阶段自动执行混淆 -->
+                        <goals>
+                            <goal>proguard</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+
+                    <!-- 指定ProGuard版本，必须和插件版本匹配 -->
+<!--                    <proguardVersion>7.9.1</proguardVersion>-->
+
+                    <!-- 输入：Maven打包生成的原始jar -->
+                    <injar>${project.build.finalName}-jar-with-dependencies.jar</injar>
+                    <!-- 输出：混淆后的jar -->
+                    <outjar>${project.build.finalName}.jar</outjar>
+                    <!-- 输出目录：target/ -->
+                    <outputDirectory>${project.build.directory}</outputDirectory>
+
+                    <!-- 生成映射文件，用于还原混淆后的堆栈 -->
+                    <mappingFileName>proguard-mapping.txt</mappingFileName>
+
+                    <!-- JDK9+ 必须配置这个，指向JDK的jmods目录 -->
+                    <libs>
+                        <lib>${java.home}/jmods</lib>
+                    </libs>
+
+                    <!-- 混淆规则：可以内联写，也可以用外部文件 -->
+                    <proguardInclude>${project.basedir}/proguard-rules.pro</proguardInclude>
+
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
 </project>

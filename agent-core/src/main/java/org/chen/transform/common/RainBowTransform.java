@@ -1,24 +1,21 @@
-package org.chen.transform.common;//package org.chen.transform.common;
+//package org.chen.transform.common;
 //
 //
-//import org.chen.utils.ConfigHelper;
+//import org.apache.logging.log4j.LogManager;
+//import org.apache.logging.log4j.Logger;
+//import org.chen.utils.Utils;
 //
-//import jdk.internal.org.objectweb.asm.ClassReader;
-//import jdk.internal.org.objectweb.asm.ClassWriter;
-//import jdk.internal.org.objectweb.asm.Opcodes;
-//import jdk.internal.org.objectweb.asm.tree.*;
-//
-//import java.nio.file.Path;
+//import java.lang.classfile.*;
+//import java.lang.classfile.attribute.CodeAttribute;
+//import java.lang.classfile.constantpool.Utf8Entry;
 //import java.security.ProtectionDomain;
 //import java.util.ArrayList;
 //import java.util.List;
-//import java.util.Objects;
+//import java.util.Optional;
 //
-//import static org.chen.utils.Utils.saveClass;
-//import static jdk.internal.org.objectweb.asm.Opcodes.ASM8;
 //
 //public class RainBowTransform implements CommonClassFileTransformer {
-//    private static final String owner = ConfigHelper.class.getName().replace(".", "/");
+//    private static final Logger log = LogManager.getLogger(RainBowTransform.class);
 //    private final List<String> hookClasses = new ArrayList<>();
 //
 //    public RainBowTransform() {
@@ -34,141 +31,360 @@ package org.chen.transform.common;//package org.chen.transform.common;
 //
 //    @Override
 //    public boolean isHook() {
-//        return true;
+//        return CommonClassFileTransformer.super.isHook();
 //    }
 //
 //    @Override
 //    public byte[] transform(ClassLoader loader, String classInterName, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classFileBuffer) {
-//        var className = classInterName.replaceAll("/", ".");
+//        var className = classInterName.replace("/", ".");
 //        if (!this.hookClasses.contains(className)) {
 //            return classFileBuffer;
 //        }
 //
 //        log.info("transform start {} {}", className, loader);
-//        ClassReader classReader = new ClassReader(classFileBuffer);
-//        ClassWriter classWriter = new ClassWriter(classReader, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-//        ClassNode classNode = new ClassNode(ASM8);
-//        classReader.accept(classNode, 0);
-//        switch (classInterName) {
-//            case "com/intellij/diagnostic/VMOptions" -> {
-//                classNode.methods.forEach(methodNode -> {
-//                    if (methodNode.name.equals("getUserOptionsFile")) {
-//                        log.info("transform method start {} {}", className, methodNode.name);
-//                        for (AbstractInsnNode node : methodNode.instructions) {
-//                            if (node.getOpcode() == Opcodes.ARETURN) {
-//                                var nullLabel = new LabelNode();
-//                                InsnList insnList = new InsnList();
-//                                insnList.add(new InsnNode(Opcodes.DUP));
-//                                insnList.add(new JumpInsnNode(Opcodes.IFNULL, nullLabel));
-//                                var descriptorString = Path.class.descriptorString();
-//                                descriptorString = "(" + descriptorString + ")" + descriptorString;
-//                                insnList.add(new MethodInsnNode(Opcodes.INVOKESTATIC, owner, "getUserOptionsFile", descriptorString));
-//                                insnList.add(nullLabel);
-//                                methodNode.instructions.insert(node.getPrevious(), insnList);
+//        try {
+//            // 初始化ClassFile工具，自动处理栈大小、栈帧计算（等价原ClassWriter.COMPUTE_FRAMES|COMPUTE_MAXS）
+//            ClassFile classFile = ClassFile.of();
+//            // 解析原始class字节码
+//            ClassModel classModel = classFile.parse(classFileBuffer);
+//
+//            // 保存我们修改后的方法
+//            List<MethodModel> modifiedMethods = new ArrayList<>();
+//            boolean hasModified = false;
+//
+//            // ==============================================
+//            // 分类型处理不同的目标类，完全复刻原switch逻辑
+//            // ==============================================
+//            switch (classInterName) {
+//                case "com/intellij/diagnostic/VMOptions" -> {
+//                    // 处理VMOptions类，修改getUserOptionsFile方法
+//                    for (MethodModel oldMethod : classModel.methods()) {
+//                        if (oldMethod.methodName().equalsString("getUserOptionsFile")) {
+//                            log.info("transform method start {} {}", className, oldMethod.methodName());
+//                            Optional<CodeModel> oldCode = oldMethod.code();
+//                            if (oldCode.isEmpty()) {
+//                                break;
 //                            }
-//                        }
-//                        log.info("transform method end {} {}", className, methodNode.name);
-//                    }
-//                });
-//            }
-//            case "com/intellij/ui/LicensingFacade" -> {
-//                classNode.methods.forEach(methodNode -> {
-//                    if (methodNode.name.equals("getLicenseExpirationDate")) {
-//                        log.info("transform method start {} {}", className, methodNode.name);
-//                        methodNode.instructions.clear();
-//                        methodNode.instructions.add(new MethodInsnNode(Opcodes.INVOKESTATIC, owner, methodNode.name, "()Ljava/util/Date;"));
-//                        methodNode.instructions.add(new InsnNode(Opcodes.ARETURN));
-//                        log.info("transform method end {} {}", className, methodNode.name);
-//                    }
-//
-//                    if (methodNode.name.equals("getExpirationDate") && methodNode.desc.equals("(Ljava/lang/String;)Ljava/util/Date;")) {
-//                        log.info("transform method start {} {}", className, methodNode.name);
-//                        methodNode.instructions.clear();
-//                        methodNode.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
-//                        methodNode.instructions.add(new FieldInsnNode(Opcodes.GETFIELD, classInterName, "expirationDates", "Ljava/util/Map;"));
-//                        methodNode.instructions.add(new VarInsnNode(Opcodes.ALOAD, 1));
-//                        methodNode.instructions.add(new MethodInsnNode(Opcodes.INVOKESTATIC, owner, methodNode.name, "(Ljava/util/Map;Ljava/lang/String;)Ljava/util/Date;"));
-//                        methodNode.instructions.add(new InsnNode(Opcodes.ARETURN));
-//                        log.info("transform method end {} {}", className, methodNode.name);
-//                    }
-//
-//                    //由于不知道expirationDates什么时候被修改 所以这里在每个对象方法前更新
-//                    //非静态方法
-//                    boolean isNonStatic = ((methodNode.access & Opcodes.ACC_STATIC) == 0);
-//                    boolean isConstructor = methodNode.name.equals("<init>");
-//                    if (isNonStatic && !isConstructor) {
-//                        log.info("transform method start {} {}", className, methodNode.name);
-//                        InsnList insnList = new InsnList();
-//                        insnList.add(new VarInsnNode(Opcodes.ALOAD, 0));
-//                        insnList.add(new InsnNode(Opcodes.DUP));
-//                        insnList.add(new FieldInsnNode(Opcodes.GETFIELD, classInterName, "expirationDates", "Ljava/util/Map;"));
-//                        insnList.add(new MethodInsnNode(Opcodes.INVOKESTATIC, owner, "expirationDates", "(Ljava/util/Map;)Ljava/util/Map;"));
-//                        insnList.add(new FieldInsnNode(Opcodes.PUTFIELD, classInterName, "expirationDates", "Ljava/util/Map;"));
-//                        methodNode.instructions.insert(insnList);
-//                        log.info("transform method end {} {}", className, methodNode.name);
-//                    }
-//                });
-//            }
-//            case "sun/management/VMManagementImpl" -> {
-//                classNode.methods.forEach(methodNode -> {
-//                    var iterator = methodNode.instructions.iterator();
-//                    if (methodNode.name.equals("getVmArguments") &&
-//                            "()Ljava/util/List;".equals(methodNode.desc)) {
-//                        log.info("transform method start {} {}", className, methodNode.name);
-//                        InsnList insnList = new InsnList();
-//                        insnList.add(new VarInsnNode(Opcodes.ALOAD, 0));
-//                        insnList.add(new VarInsnNode(Opcodes.ALOAD, 0));
-//                        insnList.add(new FieldInsnNode(Opcodes.GETFIELD, "sun/management/VMManagementImpl", "vmArgs", "Ljava/util/List;"));
-//                        insnList.add(new MethodInsnNode(Opcodes.INVOKESTATIC, "com/chen/utils/ConfigHelper", "getVmArguments", "(Ljava/util/List;)Ljava/util/List;", false));
-//                        insnList.add(new FieldInsnNode(Opcodes.PUTFIELD, "sun/management/VMManagementImpl", "vmArgs", "Ljava/util/List;"));
-//                        int breakFlag = 0;
-//                        while (iterator.hasNext()) {
-//
-//                            AbstractInsnNode insnNode = iterator.next();
-//                            if (insnNode.getType() == AbstractInsnNode.INSN && insnNode.getOpcode() == Opcodes.ARETURN) {
-//                                methodNode.instructions.insert(insnNode.getPrevious().getPrevious(), insnList);
-//                                breakFlag = breakFlag + 1;
-//                                if (breakFlag == 2) {
-//                                    break;
+//                            CodeTransform codeTransform=new CodeTransform() {
+//                                @Override
+//                                public void accept(CodeBuilder builder, CodeElement element) {
+//                                        builder.with(element);
 //                                }
-//                            }
+//                            };
 //
-//                            if (insnNode instanceof MethodInsnNode methodInsnNode) {
-//                                log.info("methodInsnNode:" + methodInsnNode.owner + "\t" + methodInsnNode.name + "\t" + methodInsnNode.desc);
-//                                boolean canAdd = (Objects.equals(methodInsnNode.owner, "sun/management/VMManagementImpl") &&
-//                                        Objects.equals(methodInsnNode.name, "getVmArguments0") &&
-//                                        Objects.equals(methodInsnNode.desc, "()[Ljava/lang/String;") &&
-//                                        Opcodes.INVOKEVIRTUAL == insnNode.getOpcode());
-//                                if (canAdd) {
-//                                    log.info("found methodInsnNode:" + methodInsnNode.owner + "\t" + methodInsnNode.name + "\t" + methodInsnNode.desc);
-//                                    // 在方法开始处插入打印消息的指令
-//                                    InsnList startInstructions = new InsnList();
-//                                    startInstructions.add(new FieldInsnNode(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;"));
-//                                    startInstructions.add(new LdcInsnNode("Entering native method: " + methodInsnNode.name));
-//                                    startInstructions.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V"));
-//                                    methodNode.instructions.insert(insnNode.getPrevious(), startInstructions);
+//                            CodeModel codeModel = oldCode.get();
+//                            ClassTransform classTransform = ClassTransform.transformingMethods(methodModel -> false,(builder, element) -> {
 //
-//                                    // 在方法结束处插入打印消息的指令
-//                                    InsnList endInstructions = new InsnList();
-//                                    endInstructions.add(new FieldInsnNode(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;"));
-//                                    endInstructions.add(new LdcInsnNode("Exiting native method: " + methodInsnNode.name));
-//                                    endInstructions.add(new MethodInsnNode(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V"));
-//                                    methodNode.instructions.insert(insnNode, endInstructions);
-//                                    breakFlag = breakFlag + 1;
-//                                    if (breakFlag == 2) {
-//                                        break;
-//                                    }
+//                            });
+//
+//                            // 遍历所有指令，等价原InsnList遍历
+//                            for (Instruction instr : oldCode) {
+//                                if (instr.opcode() == OpCode.ARETURN) {
+//                                    // 找到返回指令，插入拦截代码（完全复刻原ASM逻辑）
+//                                    Label nullLabel = new Label();
+//                                    newCode.dup(); // DUP
+//                                    newCode.ifnull(nullLabel); // IFNULL 跳转
+//                                    // 调用我们的hook方法
+//                                    newCode.invokestatic(
+//                                            classModel.constantPool().methodRef(
+//                                                    classModel.constantPool().classSymbol(owner),
+//                                                    classModel.constantPool().nameAndType(
+//                                                            "getUserOptionsFile",
+//                                                            "(Ljava/nio/file/Path;)Ljava/nio/file/Path;"
+//                                                    )
+//                                            )
+//                                    );
+//                                    newCode.labelBinding(nullLabel);
 //                                }
+//                                // 原返回指令原样保留
+//                                newCode.with(instr);
 //                            }
+//
+//                            // 构建修改后的方法
+//                            MethodInfo newMethod = MethodInfo.of(
+//                                    oldMethod.flags(),
+//                                    oldMethod.methodName().orElseThrow(),
+//                                    oldMethod.methodType().descriptorString(),
+//                                    oldMethod.attributes().stream().filter(a -> !(a instanceof CodeAttribute)).toList(),
+//                                    newCode.build()
+//                            );
+//                            modifiedMethods.add(newMethod);
+//                            hasModified = true;
+//                            log.info("transform method end {} {}", className, oldMethod.methodName().orElse(null));
 //                        }
-//                        log.info("transform method end {} {}", className, methodNode.name);
 //                    }
-//                });
+//                }
+//
+////                case "com/intellij/ui/LicensingFacade" -> {
+////                    // 处理LicensingFacade类
+////                    for (MethodInfo oldMethod : classModel.methods()) {
+////                        String methodName = oldMethod.methodName().orElse(null);
+////                        String methodDesc = oldMethod.methodType().descriptorString();
+////
+////                        // 1. 修改getLicenseExpirationDate方法，清空原指令替换为hook
+////                        if ("getLicenseExpirationDate".equals(methodName)) {
+////                            log.info("transform method start {} {}", className, methodName);
+////                            CodeBuilder newCode = CodeBuilder.of(classModel.constantPool(), 1, 0);
+////                            // 调用我们的hook方法
+////                            newCode.invokestatic(
+////                                    classModel.constantPool().methodRef(
+////                                            classModel.constantPool().classSymbol(owner),
+////                                            classModel.constantPool().nameAndType("getLicenseExpirationDate", "()Ljava/util/Date;")
+////                                    )
+////                            );
+////                            newCode.areturn();
+////
+////                            MethodInfo newMethod = MethodInfo.of(
+////                                    oldMethod.flags(),
+////                                    methodName,
+////                                    methodDesc,
+////                                    oldMethod.attributes().stream().filter(a -> !(a instanceof CodeAttribute)).toList(),
+////                                    newCode.build()
+////                            );
+////                            modifiedMethods.add(newMethod);
+////                            hasModified = true;
+////                            log.info("transform method end {} {}", className, methodName);
+////                        }
+////
+////                        // 2. 修改getExpirationDate(String)方法
+////                        else if ("getExpirationDate".equals(methodName) && "(Ljava/lang/String;)Ljava/util/Date;".equals(methodDesc)) {
+////                            log.info("transform method start {} {}", className, methodName);
+////                            CodeBuilder newCode = CodeBuilder.of(classModel.constantPool(), 2, 2);
+////                            // 完全复刻原ASM的指令顺序
+////                            newCode.aload(0); // ALOAD 0: this
+////                            newCode.getfield( // GETFIELD expirationDates
+////                                    classModel.constantPool().fieldRef(
+////                                            classModel.constantPool().classSymbol(classInterName),
+////                                            classModel.constantPool().nameAndType("expirationDates", "Ljava/util/Map;")
+////                                    )
+////                            );
+////                            newCode.aload(1); // ALOAD 1: 方法参数
+////                            // 调用我们的hook方法
+////                            newCode.invokestatic(
+////                                    classModel.constantPool().methodRef(
+////                                            classModel.constantPool().classSymbol(owner),
+////                                            classModel.constantPool().nameAndType("getExpirationDate", "(Ljava/util/Map;Ljava/lang/String;)Ljava/util/Date;")
+////                                    )
+////                            );
+////                            newCode.areturn();
+////
+////                            MethodInfo newMethod = MethodInfo.of(
+////                                    oldMethod.flags(),
+////                                    methodName,
+////                                    methodDesc,
+////                                    oldMethod.attributes().stream().filter(a -> !(a instanceof CodeAttribute)).toList(),
+////                                    newCode.build()
+////                            );
+////                            modifiedMethods.add(newMethod);
+////                            hasModified = true;
+////                            log.info("transform method end {} {}", className, methodName);
+////                        }
+////
+////                        // 3. 所有非静态、非构造方法，开头插入expirationDates更新逻辑
+////                        else {
+////                            boolean isNonStatic = (oldMethod.flags().toModifierFlags() & Opcodes.ACC_STATIC) == 0;
+////                            boolean isConstructor = "<init>".equals(methodName);
+////                            if (isNonStatic && !isConstructor) {
+////                                log.info("transform method start {} {}", className, methodName);
+////                                CodeAttribute oldCode = oldMethod.code().orElseThrow();
+////                                CodeBuilder newCode = CodeBuilder.of(
+////                                        classModel.constantPool(),
+////                                        oldCode.maxStack(),
+////                                        oldCode.maxLocals()
+////                                );
+////
+////                                // 方法最开头插入更新代码（等价原instructions.insert(insnList)）
+////                                newCode.aload(0); // ALOAD 0: this
+////                                newCode.dup(); // DUP
+////                                newCode.getfield( // GETFIELD expirationDates
+////                                        classModel.constantPool().fieldRef(
+////                                                classModel.constantPool().classSymbol(classInterName),
+////                                                classModel.constantPool().nameAndType("expirationDates", "Ljava/util/Map;")
+////                                        )
+////                                );
+////                                // 调用我们的hook方法
+////                                newCode.invokestatic(
+////                                        classModel.constantPool().methodRef(
+////                                                classModel.constantPool().classSymbol(owner),
+////                                                classModel.constantPool().nameAndType("expirationDates", "(Ljava/util/Map;)Ljava/util/Map;")
+////                                        )
+////                                );
+////                                newCode.putfield( // PUTFIELD 写回字段
+////                                        classModel.constantPool().fieldRef(
+////                                                classModel.constantPool().classSymbol(classInterName),
+////                                                classModel.constantPool().nameAndType("expirationDates", "Ljava/util/Map;")
+////                                        )
+////                                );
+////
+////                                // 原方法的所有指令原样保留
+////                                for (Instruction instr : oldCode) {
+////                                    newCode.with(instr);
+////                                }
+////
+////                                MethodInfo newMethod = MethodInfo.of(
+////                                        oldMethod.flags(),
+////                                        methodName,
+////                                        methodDesc,
+////                                        oldMethod.attributes().stream().filter(a -> !(a instanceof CodeAttribute)).toList(),
+////                                        newCode.build()
+////                                );
+////                                modifiedMethods.add(newMethod);
+////                                hasModified = true;
+////                                log.info("transform method end {} {}", className, methodName);
+////                            }
+////                        }
+////                    }
+////                }
+////
+////                case "sun/management/VMManagementImpl" -> {
+////                    // 处理VMManagementImpl类
+////                    for (MethodModel oldMethod : classModel.methods()) {
+////                        Utf8Entry methodName = oldMethod.methodName();
+////                        Utf8Entry methodDesc = oldMethod.methodType();
+////                        if (methodName.equalsString("getVmArguments") && methodDesc.equalsString("()Ljava/util/List;")) {
+////                            log.info("transform method start {} {}", className, methodName);
+////                            CodeAttribute oldCode = oldMethod.;
+////                            CodeBuilder newCode = CodeBuilder.of(
+////                                    classModel.constantPool(),
+////                                    oldCode.maxStack(),
+////                                    oldCode.maxLocals()
+////                            );
+////
+////                            int breakFlag = 0; // 完全复刻原breakFlag逻辑，找到2个目标就停止处理
+////                            for (Instruction instr : oldCode) {
+////                                if (breakFlag >= 2) {
+////                                    // 超过目标数量，后面的指令原样保留
+////                                    newCode.with(instr);
+////                                    continue;
+////                                }
+////
+////                                // 1. 处理ARETURN，插入vmArgs更新逻辑
+////                                if (instr.opcode() == OpCode.ARETURN) {
+////                                    // 完全复刻原ASM的插入代码
+////                                    newCode.aload(0); // ALOAD 0: this
+////                                    newCode.aload(0); // ALOAD 0: this
+////                                    newCode.getfield( // GETFIELD vmArgs
+////                                            classModel.constantPool().fieldRef(
+////                                                    classModel.constantPool().classSymbol("sun/management/VMManagementImpl"),
+////                                                    classModel.constantPool().nameAndType("vmArgs", "Ljava/util/List;")
+////                                            )
+////                                    );
+////                                    // 调用ConfigHelper的hook
+////                                    newCode.invokestatic(
+////                                            classModel.constantPool().methodRef(
+////                                                    classModel.constantPool().classSymbol("com/chen/utils/ConfigHelper"),
+////                                                    classModel.constantPool().nameAndType("getVmArguments", "(Ljava/util/List;)Ljava/util/List;")
+////                                            )
+////                                    );
+////                                    newCode.putfield( // PUTFIELD 写回vmArgs
+////                                            classModel.constantPool().fieldRef(
+////                                                    classModel.constantPool().classSymbol("sun/management/VMManagementImpl"),
+////                                                    classModel.constantPool().nameAndType("vmArgs", "Ljava/util/List;")
+////                                            )
+////                                    );
+////                                    breakFlag++;
+////                                }
+////
+////                                // 2. 处理方法调用，拦截getVmArguments0
+////                                if (instr instanceof InvokeInstruction invokeInstr) {
+////                                    // 打印原方法调用日志，完全复刻
+////                                    log.info("methodInsnNode:{} {} {}", invokeInstr.owner(), invokeInstr.name(), invokeInstr.type().descriptorString());
+////
+////                                    // 找到目标调用getVmArguments0
+////                                    if ("getVmArguments0".equals(invokeInstr.name())
+////                                            && "sun/management/VMManagementImpl".equals(invokeInstr.owner())
+////                                            && "()[Ljava/lang/String;".equals(invokeInstr.type().descriptorString())
+////                                            && invokeInstr.opcode() == OpCode.INVOKEVIRTUAL) {
+////
+////                                        log.info("found methodInsnNode:{} {} {}", invokeInstr.owner(), invokeInstr.name(), invokeInstr.type().descriptorString());
+////                                        // 插入Entering打印
+////                                        newCode.getstatic(
+////                                                classModel.constantPool().fieldRef(
+////                                                        classModel.constantPool().classSymbol("java/lang/System"),
+////                                                        classModel.constantPool().nameAndType("out", "Ljava/io/PrintStream;")
+////                                                )
+////                                        );
+////                                        newCode.ldc("Entering native method: getVmArguments0");
+////                                        newCode.invokevirtual(
+////                                                classModel.constantPool().methodRef(
+////                                                        classModel.constantPool().classSymbol("java/io/PrintStream"),
+////                                                        classModel.constantPool().nameAndType("println", "(Ljava/lang/String;)V")
+////                                                )
+////                                        );
+////
+////                                        // 原调用指令
+////                                        newCode.with(instr);
+////
+////                                        // 插入Exiting打印
+////                                        newCode.getstatic(
+////                                                classModel.constantPool().fieldRef(
+////                                                        classModel.constantPool().classSymbol("java/lang/System"),
+////                                                        classModel.constantPool().nameAndType("out", "Ljava/io/PrintStream;")
+////                                                )
+////                                        );
+////                                        newCode.ldc("Exiting native method: getVmArguments0");
+////                                        newCode.invokevirtual(
+////                                                classModel.constantPool().methodRef(
+////                                                        classModel.constantPool().classSymbol("java/io/PrintStream"),
+////                                                        classModel.constantPool().nameAndType("println", "(Ljava/lang/String;)V")
+////                                                )
+////                                        );
+////
+////                                        breakFlag++;
+////                                    } else {
+////                                        newCode.with(instr);
+////                                    }
+////                                } else {
+////                                    newCode.with(instr);
+////                                }
+////                            }
+////
+////                            // 构建修改后的方法
+////                            MethodInfo newMethod = MethodInfo.of(
+////                                    oldMethod.flags(),
+////                                    methodName,
+////                                    methodDesc,
+////                                    oldMethod.attributes().stream().filter(a -> !(a instanceof CodeAttribute)).toList(),
+////                                    newCode.build()
+////                            );
+////                            modifiedMethods.add(newMethod);
+////                            hasModified = true;
+////                            log.info("transform method end {} {}", className, methodName);
+////                        }
+////                    }
+////                }
 //            }
+//
+//            // 没有任何修改，直接返回原字节码
+//            if (!hasModified) {
+//                return classFileBuffer;
+//            }
+//
+//            // ==============================================
+//            // 生成最终的修改后的class字节码
+//            // ==============================================
+////            byte[] newClassBytes = classFile.transformClass(classModel, clb -> {
+////                // 替换我们修改过的方法，其他所有元素完全保留
+////                clb.with(element -> {
+////                    if (element instanceof MethodModel m) {
+////                        // 找到对应的修改后的方法
+////                        Optional<MethodModel> newM = modifiedMethods.stream()
+////                                .filter(nm -> nm.methodName().equals(m.methodName()) && nm.methodType().equals(m.methodType()))
+////                                .findFirst();
+////                        return newM.orElse(m);
+////                    }
+////                    return element;
+////                });
+////            });
+//
+//            byte[] newClassBytes=classFileBuffer;
+//            Utils.saveToFile(classInterName, newClassBytes);
+//            log.info("transform end {}", className);
+//            return newClassBytes;
+//        } catch (Exception e) {
+//            // 出错时返回null 不修改
+//            log.error("transform failed for class {}", className, e);
+//            return null;
 //        }
-//        log.info("transform end {}", className);
-//        classNode.accept(classWriter);
-//        saveClass(className, classWriter);
-//        return classWriter.toByteArray();
 //    }
 //}

@@ -12,6 +12,7 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.HashMap;
 
 /**
@@ -124,5 +125,23 @@ public class ConfigHelperSpy  {
             System.err.println("ConfigHelperSpy e:"+e);
             throw new IllegalArgumentException(e);
         }
+    }
+
+    public static Path getUserOptionsFile(Path path){
+        MethodType methodType = MethodType.methodType(Path.class, Path.class);
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        StackTraceElement stackTraceElement = stackTrace[1];
+        String className = stackTraceElement.getClassName();
+        String methodName = stackTraceElement.getMethodName();
+        String fileName = stackTraceElement.getFileName();
+        int lineNumber = stackTraceElement.getLineNumber();
+        MethodHandle methodHandle = methodHandleHashMap.get(realHelp+"."+methodName+"."+methodType.toString());
+        try {
+            Object invoke = methodHandle.invoke(path);
+            return (Path) invoke;
+        } catch (Throwable e) {
+            System.err.println("ConfigHelperSpy e:"+e);
+        }
+        return path;
     }
 }
