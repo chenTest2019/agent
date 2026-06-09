@@ -5,10 +5,14 @@ import org.apache.logging.log4j.Logger;
 import org.chen.utils.Utils;
 
 import java.lang.classfile.*;
+import java.lang.classfile.constantpool.ClassEntry;
+import java.lang.classfile.constantpool.Utf8Entry;
+import java.lang.classfile.instruction.InvokeInstruction;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.MethodTypeDesc;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.reflect.AccessFlag;
+import java.lang.constant.ConstantDescs;
 import java.nio.file.Path;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
@@ -49,7 +53,7 @@ public class RainBowTransform implements CommonClassFileTransformer {
             bytes = ClassFile.of(ClassFile.StackMapsOption.GENERATE_STACK_MAPS, ClassFile.StackMapsOption.STACK_MAPS_WHEN_REQUIRED)
                     .transformClass(ClassFile.of().parse(classFileBuffer), classTransform);
         } catch (Exception e) {
-            log.error("transform e:" , e);
+            log.error("transform e:", e);
         }
         if (bytes == null) {
             return null;
@@ -87,8 +91,8 @@ public class RainBowTransform implements CommonClassFileTransformer {
 //                        && methodModel.methodTypeSymbol().equals(MethodTypeDesc.of(ClassDesc.of(Path.class.getName()))), vmOptionsMethodTransform);
                 classTransform = (builder, element) -> {
                     if (element instanceof MethodModel m && m.methodName().equalsString("getUserOptionsFile")
-                    &&m.methodTypeSymbol().equals(MethodTypeDesc.of(ClassDesc.of(Path.class.getName())))) {
-                           builder.transformMethod(m, vmOptionsMethodTransform);
+                            && m.methodTypeSymbol().equals(MethodTypeDesc.of(ClassDesc.of(Path.class.getName())))) {
+                        builder.transformMethod(m, vmOptionsMethodTransform);
                     } else {
                         builder.with(element);
                     }
@@ -96,37 +100,37 @@ public class RainBowTransform implements CommonClassFileTransformer {
                 break;
             case "com/intellij/ui/LicensingFacade":
                 // LicensingFacade.getLicenseExpirationDate -> replace body with invokestatic(owner, getLicenseExpirationDate) and areturn
-                        MethodTransform licenseGetLicenseExpirationDate = MethodTransform.transformingCode(new CodeTransform() {
-                            @Override
-                            public void accept(CodeBuilder builder, CodeElement element) {
-                                // do not emit original instructions: we replace method body entirely
-                            }
+                MethodTransform licenseGetLicenseExpirationDate = MethodTransform.transformingCode(new CodeTransform() {
+                    @Override
+                    public void accept(CodeBuilder builder, CodeElement element) {
+                        // do not emit original instructions: we replace method body entirely
+                    }
 
-                            @Override
-                            public void atStart(CodeBuilder builder) {
-                                builder.invokestatic(ClassDesc.of(owner), "getLicenseExpirationDate",
-                                                MethodTypeDesc.of(ClassDesc.of("java.util.Date")))
-                                        .areturn();
-                            }
-                        });
+                    @Override
+                    public void atStart(CodeBuilder builder) {
+                        builder.invokestatic(ClassDesc.of(owner), "getLicenseExpirationDate",
+                                        MethodTypeDesc.of(ClassDesc.of("java.util.Date")))
+                                .areturn();
+                    }
+                });
 
                 // LicensingFacade.getExpirationDate(String) -> call owner.getExpirationDate(Map,String)
-                        MethodTransform licenseGetExpirationDate = MethodTransform.transformingCode(new CodeTransform() {
-                            @Override
-                            public void accept(CodeBuilder builder, CodeElement element) {
-                                // replace entire method body; do not emit original instructions
-                            }
+                MethodTransform licenseGetExpirationDate = MethodTransform.transformingCode(new CodeTransform() {
+                    @Override
+                    public void accept(CodeBuilder builder, CodeElement element) {
+                        // replace entire method body; do not emit original instructions
+                    }
 
-                            @Override
-                            public void atStart(CodeBuilder builder) {
-                                builder.aload(0)
-                                        .getfield(ClassDesc.ofInternalName(classInterName), "expirationDates", ClassDesc.of("java.util.Map"))
-                                        .aload(1)
-                                        .invokestatic(ClassDesc.of(owner), "getExpirationDate",
-                                                MethodTypeDesc.of(ClassDesc.of("java.util.Date"), ClassDesc.of("java.util.Map"), ClassDesc.of(String.class.getName())))
-                                        .areturn();
-                            }
-                        });
+                    @Override
+                    public void atStart(CodeBuilder builder) {
+                        builder.aload(0)
+                                .getfield(ClassDesc.ofInternalName(classInterName), "expirationDates", ClassDesc.of("java.util.Map"))
+                                .aload(1)
+                                .invokestatic(ClassDesc.of(owner), "getExpirationDate",
+                                        MethodTypeDesc.of(ClassDesc.of("java.util.Date"), ClassDesc.of("java.util.Map"), ClassDesc.of(String.class.getName())))
+                                .areturn();
+                    }
+                });
 
                 // Update expirationDates at start of every non-static, non-constructor method
                 MethodTransform updateExpirationDates = MethodTransform.transformingCode(new CodeTransform() {
@@ -152,43 +156,76 @@ public class RainBowTransform implements CommonClassFileTransformer {
                         case MethodModel m when m.methodName().equalsString("getExpirationDate") && m.methodTypeSymbol().equals(MethodTypeDesc.of(ClassDesc.of("java.util.Date"), ClassDesc.of(String.class.getName()))) ->
                                 builder.transformMethod(m, licenseGetExpirationDate);
                         case MethodModel m when !m.methodName().equalsString("<init>") && !m.flags().has(AccessFlag.STATIC) -> {
-                            if(m.methodName().equalsString("isApplicableForProduct")||m.methodName().equalsString("isPerpetualForProduct")){
+                            if (m.methodName().equalsString("isApplicableForProduct") || m.methodName().equalsString("isPerpetualForProduct")) {
                                 //System.out.println("transforming " + m.methodName());
                             }
                             builder.transformMethod(m, updateExpirationDates);
                         }
                         default -> builder.with(element);
                     }
-                };break;
-                case "sun/management/VMManagementImpl":
+                };
+                break;
+            case "sun/management/VMManagementImpl":
 
-                    // VMManagementImpl.getVmArguments: insert vmArgs update before up to 2 ARETURNs
-                    MethodTransform vmManagementGetVmArguments = MethodTransform.transformingCode(new CodeTransform() {
-                        int inserted = 0;
+                // VMManagementImpl.getVmArguments: insert vmArgs update before up to 2 ARETURNs
+                MethodTransform vmManagementGetVmArguments = MethodTransform.transformingCode(new CodeTransform() {
+                    int inserted = 0;
 
-                        @Override
-                        public void accept(CodeBuilder builder, CodeElement element) {
-                            if (element instanceof Instruction instr && Opcode.ARETURN == instr.opcode()) {
-                                if (inserted < 2) {
-                                    builder.aload(0)
-                                            .aload(0)
-                                            .getfield(ClassDesc.ofInternalName("sun/management/VMManagementImpl"), "vmArgs", ClassDesc.of("java.util.List"))
-                                            .invokestatic(ClassDesc.of(owner), "getVmArguments",
-                                                    MethodTypeDesc.of(ClassDesc.of("java.util.List"), ClassDesc.of("java.util.List")))
-                                            .putfield(ClassDesc.ofInternalName("sun/management/VMManagementImpl"), "vmArgs", ClassDesc.of("java.util.List"));
-                                    inserted++;
+                    @Override
+                    public void accept(CodeBuilder builder, CodeElement element) {
+                        // detect invocation of getVmArguments0 and insert prints around it
+                        if (element instanceof Instruction instr && instr.opcode() == Opcode.INVOKEVIRTUAL) {
+                            // some Instruction implementations for invoke provide owner/name/type info
+                            if (instr instanceof InvokeInstruction inv) {
+                                ClassEntry ownerName = inv.owner();
+                                Utf8Entry methodName = inv.name();
+                                Utf8Entry type = inv.type();
+                                if (ownerName.asInternalName().equals("sun/management/VMManagementImpl")
+                                        && methodName.equalsString("getVmArguments0")
+                                        && type.equalsString("()[Ljava/lang/String;")) {
+                                    // print before calling native method
+                                    builder.getstatic(ClassDesc.ofInternalName("java/lang/System"), "out", ClassDesc.ofInternalName("java/io/PrintStream"))
+                                            .ldc("getVmArguments0 in")
+                                            .invokevirtual(ClassDesc.ofInternalName("java/io/PrintStream"), "println", MethodTypeDesc.of(ConstantDescs.CD_void, ConstantDescs.CD_String));
+                                    // emit the original invoke
+                                    builder.accept(element);
+                                    // print after call
+                                    builder.getstatic(ClassDesc.ofInternalName("java/lang/System"), "out", ClassDesc.ofInternalName("java/io/PrintStream"))
+                                            .ldc("getVmArguments0 out")
+                                            .invokevirtual(ClassDesc.ofInternalName("java/io/PrintStream"), "println", MethodTypeDesc.of(ConstantDescs.CD_void, ConstantDescs.CD_String));
+                                    return;
                                 }
                             }
-                            builder.accept(element);
                         }
-                    });
-                    classTransform = (builder, element) -> {
-                        if (Objects.requireNonNull(element) instanceof MethodModel m && m.methodName().equalsString("getVmArguments") && m.methodTypeSymbol().equals(MethodTypeDesc.of(ClassDesc.of("java.util.List")))) {
-                            builder.transformMethod(m, vmManagementGetVmArguments);
-                        } else {
-                            builder.with(element);
+
+                        // handle ARETURN based vmArgs update as before
+                        if (element instanceof Instruction instr2 && Opcode.ARETURN == instr2.opcode()) {
+                            if (inserted < 2) {
+                                builder.aload(0)
+                                        .aload(0)
+                                        .getfield(ClassDesc.ofInternalName("sun/management/VMManagementImpl"), "vmArgs", ClassDesc.of("java.util.List"))
+                                        .invokestatic(ClassDesc.of(owner), "getVmArguments",
+                                                MethodTypeDesc.of(ClassDesc.of("java.util.List"), ClassDesc.of("java.util.List")))
+                                        .putfield(ClassDesc.ofInternalName("sun/management/VMManagementImpl"), "vmArgs", ClassDesc.of("java.util.List"));
+                                inserted++;
+                            }
                         }
-                    }; break;
+                        builder.accept(element);
+                    }
+
+                    @Override
+                    public void atStart(CodeBuilder builder) {
+                        // no-op here; prints are emitted specifically around the native call
+                    }
+                });
+                classTransform = (builder, element) -> {
+                    if (Objects.requireNonNull(element) instanceof MethodModel m && m.methodName().equalsString("getVmArguments") && m.methodTypeSymbol().equals(MethodTypeDesc.of(ClassDesc.of("java.util.List")))) {
+                        builder.transformMethod(m, vmManagementGetVmArguments);
+                    } else {
+                        builder.with(element);
+                    }
+                };
+                break;
             default:
 
         }
