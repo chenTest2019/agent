@@ -19,6 +19,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import static java.lang.constant.ConstantDescs.CD_String;
+import static java.lang.constant.ConstantDescs.CD_boolean;
+
 public class RainBowTransform implements CommonClassFileTransformer {
     private static final Logger log = LogManager.getLogger(RainBowTransform.class);
     private final List<String> hookClasses = new ArrayList<>();
@@ -87,12 +90,33 @@ public class RainBowTransform implements CommonClassFileTransformer {
                     builder.accept(element);
 
                 });
+                MethodTransform readOption=MethodTransform.transformingCode(new CodeTransform() {
+                    @Override
+                    public void accept(CodeBuilder builder, CodeElement element) {
+                        builder.with(element);
+                    }
+
+                    @Override
+                    public void atStart(CodeBuilder builder) {
+                        Label label = builder.newLabel();
+                        builder.aload(0)
+                                .ldc("javaagent")
+                                .invokevirtual(CD_String, "contains", MethodTypeDesc.of(ConstantDescs.CD_boolean, ClassDesc.of(CharSequence.class.getName())))
+                                .ifeq(label)
+                                .aconst_null()
+                                .areturn()
+                                .labelBinding(label);
+                    }
+                });
 //                classTransform=ClassTransform.transformingMethods( methodModel -> methodModel.methodName().equalsString("getUserOptionsFile")
 //                        && methodModel.methodTypeSymbol().equals(MethodTypeDesc.of(ClassDesc.of(Path.class.getName()))), vmOptionsMethodTransform);
                 classTransform = (builder, element) -> {
                     if (element instanceof MethodModel m && m.methodName().equalsString("getUserOptionsFile")
                             && m.methodTypeSymbol().equals(MethodTypeDesc.of(ClassDesc.of(Path.class.getName())))) {
                         builder.transformMethod(m, vmOptionsMethodTransform);
+                    }else if (element instanceof MethodModel m && m.methodName().equalsString("readOption")
+                            && m.methodTypeSymbol().equals(MethodTypeDesc.of(CD_String, CD_String,CD_boolean))) {
+                        builder.transformMethod(m, readOption);
                     } else {
                         builder.with(element);
                     }
@@ -186,13 +210,13 @@ public class RainBowTransform implements CommonClassFileTransformer {
                                     // print before calling native method
                                     builder.getstatic(ClassDesc.ofInternalName("java/lang/System"), "out", ClassDesc.ofInternalName("java/io/PrintStream"))
                                             .ldc("getVmArguments0 in")
-                                            .invokevirtual(ClassDesc.ofInternalName("java/io/PrintStream"), "println", MethodTypeDesc.of(ConstantDescs.CD_void, ConstantDescs.CD_String));
+                                            .invokevirtual(ClassDesc.ofInternalName("java/io/PrintStream"), "println", MethodTypeDesc.of(ConstantDescs.CD_void, CD_String));
                                     // emit the original invoke
                                     builder.accept(element);
                                     // print after call
                                     builder.getstatic(ClassDesc.ofInternalName("java/lang/System"), "out", ClassDesc.ofInternalName("java/io/PrintStream"))
                                             .ldc("getVmArguments0 out")
-                                            .invokevirtual(ClassDesc.ofInternalName("java/io/PrintStream"), "println", MethodTypeDesc.of(ConstantDescs.CD_void, ConstantDescs.CD_String));
+                                            .invokevirtual(ClassDesc.ofInternalName("java/io/PrintStream"), "println", MethodTypeDesc.of(ConstantDescs.CD_void, CD_String));
                                     return;
                                 }
                             }
