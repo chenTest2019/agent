@@ -103,7 +103,7 @@ public class Utils {
     }
     public static void saveToFile(String fileName, byte[] bytes) {
         try {
-            Path filePath = Path.of("E:/ideame", fileName+".class");
+            Path filePath = Path.of("E:/ideame/test/", fileName+".class");
             Files.createDirectories(filePath.getParent());
             Files.write(filePath, bytes);
         } catch (IOException e) {

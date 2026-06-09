@@ -13,7 +13,10 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Path;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 空壳Spy类：无任何第三方依赖，仅做转发
@@ -128,6 +131,9 @@ public class ConfigHelperSpy  {
     }
 
     public static Path getUserOptionsFile(Path path){
+        if (path == null) {
+            return null;
+        }
         MethodType methodType = MethodType.methodType(Path.class, Path.class);
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         StackTraceElement stackTraceElement = stackTrace[1];
@@ -144,4 +150,66 @@ public class ConfigHelperSpy  {
         }
         return path;
     }
+
+    public static Date getLicenseExpirationDate() {
+        MethodType methodType = MethodType.methodType(Date.class);
+        MethodHandle methodHandle = methodHandleHashMap.get(realHelp+".getLicenseExpirationDate."+methodType.toString());
+        try {
+            Object result = methodHandle.invoke();
+            if (result == null) {
+                return null;
+            }
+            return (Date) result;
+        } catch (Throwable e) {
+            System.err.println("ConfigHelperSpy e:"+e);
+        }
+        return null;
+    }
+
+    public static Date getExpirationDate(Map<String, Date> dateMap, String code) {
+        MethodType methodType = MethodType.methodType(Date.class, Map.class, String.class);
+        MethodHandle methodHandle = methodHandleHashMap.get(realHelp+".getExpirationDate."+methodType.toString());
+        try {
+            Object result = methodHandle.invoke(dateMap, code);
+            if (result == null) {
+                return null;
+            }
+            return (Date) result;
+        } catch (Throwable e) {
+            System.err.println("ConfigHelperSpy e:"+e);
+        }
+        return null;
+    }
+    public static Map<String, Date> expirationDates(Map<String, Date> expirationDates) {
+        MethodType methodType = MethodType.methodType(Map.class, Map.class);
+        MethodHandle methodHandle = methodHandleHashMap.get(realHelp+".expirationDates."+methodType.toString());
+        try {
+            Object result = methodHandle.invoke(expirationDates);
+            if (result == null) {
+                return null;
+            }
+            return (Map<String, Date>) result;
+        } catch (Throwable e) {
+            System.err.println("ConfigHelperSpy e:"+e);
+        }
+        return null;
+    }
+
+    public static List<String> getVmArguments(List<String> vmArgs) {
+        MethodType methodType = MethodType.methodType(List.class, List.class);
+        MethodHandle methodHandle = methodHandleHashMap.get(realHelp+".getVmArguments."+methodType.toString());
+        try {
+            Object result = methodHandle.invoke(vmArgs);
+            if (result == null) {
+                return null;
+            }
+            return (List<String>) result;
+        } catch (Throwable e) {
+            System.err.println("ConfigHelperSpy e:"+e);
+        }
+        return null;
+
+    }
+
+
 }
