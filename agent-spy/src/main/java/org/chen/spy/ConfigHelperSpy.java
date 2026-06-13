@@ -12,11 +12,9 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 空壳Spy类：无任何第三方依赖，仅做转发
@@ -211,5 +209,15 @@ public class ConfigHelperSpy  {
 
     }
 
-
+    public static String getOfflineActivationCode(String str) {
+//        String str="{\n" +
+//                "    \"paidKey\":\"XXX\",\n" +
+//                "    \"valid\":true,\n" +
+//                "    \"userMac\":\"BC-24-11-A4-C0-90\",\n" +
+//                "    \"validTo\":4859711999000\n" +
+//                "}";
+        String string = new String(Base64.getEncoder().encode(str.getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
+        System.out.println(string);
+        return string;
+    }
 }
